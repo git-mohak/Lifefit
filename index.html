@@ -13,7 +13,7 @@
         }
         
         body {
-            background-color: #0f172a;
+            background-color: #0a0c10;
             color: #f8fafc;
             min-height: 100vh;
             display: flex;
@@ -69,13 +69,7 @@
             margin-right: 12px;
         }
 
-        .hero {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            max-width: 800px;
-        }
+                .hero {\n            flex: 1;\n            display: flex;\n            flex-direction: column;\n            justify-content: center;\n            max-width: 800px;\n            position: relative;\n        }\n\n        .hero::before {\n            content: '';\n            position: absolute;\n            top: 50%;\n            left: 50%;\n            transform: translate(-50%, -50%);\n            width: 140%;\n            height: 140%;\n            background: radial-gradient(circle at center, rgba(10, 12, 16, 0.8) 0%, rgba(10, 12, 16, 0.4) 40%, transparent 70%);\n            z-index: -1;\n            pointer-events: none;\n        }
 
         h1 {
             font-size: clamp(2.5rem, 5vw, 4.5rem);
@@ -237,13 +231,7 @@
         let t = 0;
         
         // Colors from map.js
-        function getScoreColor(score) {
-            if (score >= 90) return 'rgba(34, 197, 94, 0.45)';
-            if (score >= 80) return 'rgba(132, 204, 22, 0.45)';
-            if (score >= 70) return 'rgba(234, 179, 8, 0.45)';
-            if (score >= 60) return 'rgba(249, 115, 22, 0.45)';
-            return 'rgba(239, 68, 68, 0.45)';
-        }
+        function getScoreColor(score, alphaFalloff = 1) {\n            let rgb = '';\n            if (score >= 90) rgb = '20, 240, 180';\n            else if (score >= 80) rgb = '16, 185, 129';\n            else if (score >= 70) rgb = '234, 179, 8';\n            else if (score >= 60) rgb = '180, 83, 9';\n            else rgb = '120, 20, 30';\n            return \gba(\$\{rgb}, \$\{0.45 * alphaFalloff})\;\n        }
 
         // We need a normalization context just to make the scores 0-100 relative to something.
         // Let's use the static properties for context.
@@ -253,7 +241,7 @@
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         function drawFrame() {
-            t += 0.05;
+            t += 0.015;
             
             // Drift destinations using lissajous curves
             demoState.household[0].lat = centerLat + Math.sin(t * 0.7) * latRange;
@@ -274,25 +262,7 @@
             const latStep = (bounds.latMax - bounds.latMin) / GRID_SIZE;
             const lonStep = (bounds.lonMax - bounds.lonMin) / GRID_SIZE;
             
-            for (let i = 0; i < GRID_SIZE; i++) {
-                for (let j = 0; j < GRID_SIZE; j++) {
-                    const lat = bounds.latMin + i * latStep + (latStep/2);
-                    const lon = bounds.lonMin + j * lonStep + (lonStep/2);
-                    
-                    // Simple dummy rent for the animation to save heavy calculations
-                    const dummyRent = 45000;
-                    
-                    try {
-                        const scoreData = scoreLocation(lat, lon, dummyRent, demoState, normalizeContext);
-                        
-                        ctx.fillStyle = getScoreColor(scoreData.lifeFitScore);
-                        // Map grid to canvas coords: i maps to height, j maps to width
-                        // Invert i so lower lat is at bottom
-                        const canvasY = height - (i * cellH) - cellH;
-                        const canvasX = j * cellW;
-                        
-                        ctx.fillRect(canvasX, canvasY, cellW + 1, cellH + 1); // +1 prevents subpixel gaps
-                    } catch (e) {
+            const cx = GRID_SIZE / 2;\n            const cy = GRID_SIZE / 2;\n            const maxR = GRID_SIZE / 2;\n\n            for (let i = 0; i < GRID_SIZE; i++) {\n                for (let j = 0; j < GRID_SIZE; j++) {\n                    const lat = bounds.latMin + i * latStep + (latStep/2);\n                    const lon = bounds.lonMin + j * lonStep + (lonStep/2);\n                    \n                    const distFromCenter = Math.max(Math.abs(i - cx), Math.abs(j - cy));\n                    let alphaFalloff = 1.0;\n                    if (distFromCenter > maxR * 0.6) {\n                        alphaFalloff = 1.0 - ((distFromCenter - (maxR * 0.6)) / (maxR * 0.4));\n                        if (alphaFalloff < 0) alphaFalloff = 0;\n                    }\n                    if (alphaFalloff <= 0) continue;\n                    \n                    const dummyRent = 45000;\n                    \n                    try {\n                        const scoreData = scoreLocation(lat, lon, dummyRent, demoState, normalizeContext);\n                        ctx.fillStyle = getScoreColor(scoreData.lifeFitScore, alphaFalloff);\n                        const canvasY = height - (i * cellH) - cellH;\n                        const canvasX = j * cellW;\n                        ctx.fillRect(canvasX, canvasY, cellW + 1, cellH + 1);\n                    } catch (e) {}\n                }\n            }\n\n            demoState.household.forEach(m => {\n                const pLat = (m.lat - bounds.latMin) / (bounds.latMax - bounds.latMin);\n                const pLon = (m.lon - bounds.lonMin) / (bounds.lonMax - bounds.lonMin);\n                const canvasX = pLon * width;\n                const canvasY = height - (pLat * height);\n                ctx.beginPath();\n                ctx.arc(canvasX, canvasY, 6, 0, Math.PI * 2);\n                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';\n                ctx.shadowColor = 'rgba(255, 255, 255, 1)';\n                ctx.shadowBlur = 10;\n                ctx.fill();\n                ctx.shadowBlur = 0;\n            }); catch (e) {
                         // ignore errors on offscreen chunks
                     }
                 }
