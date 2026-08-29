@@ -186,9 +186,6 @@ window.hideTooltip = function() {
     const list = document.getElementById('property-list');
     list.innerHTML = '';
     
-    // Efficient Frontier Chart
-    renderChart(scoredProperties);
-    
     // Dominance summary
     const dominatedCount = scoredProperties.filter(p => p.dominatedBy).length;
     if (dominatedCount > 0) {
@@ -283,6 +280,8 @@ window.hideTooltip = function() {
         `;
         list.appendChild(card);
     });
+
+    try { renderChart(scoredProperties); } catch (e) { console.error(e); }
 
     // Render compare modal if 2 items selected
     if (state.compareQueue.length === 2) {
