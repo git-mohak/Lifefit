@@ -156,9 +156,9 @@ function scoreLocation(lat, lon, monthlyRent, state, normalizeContext = null) {
         const strongest = factors[0];
         const weakest = factors[4];
         if (strongest.score - weakest.score < 20) {
-            res.factorSummary = "Balanced across your priorities";
+            res.factorSummary = "Strong across the board, with balanced trade-offs.";
         } else {
-            res.factorSummary = `Strong on ${strongest.label}, weak on ${weakest.label}`;
+            res.factorSummary = `Strongest on ${strongest.label}, but relatively weak on ${weakest.label}.`;
         }
     }
     

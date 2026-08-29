@@ -143,9 +143,20 @@ function renderRightPanel(scoredProperties, state, toggleCompare, closeCompare) 
                         </div>
                     `;
                 } else if (deltaCost > 0 && deltaHours < 0) {
+                    let bestAdv = { diff: 0, label: '' };
+                    const labels = { commute: 'commute times', school: 'school access', health: 'healthcare access', convenience: 'daily convenience' };
+                    ['commute', 'school', 'health', 'convenience'].forEach(k => {
+                        const diff = p.scores[k] - next.scores[k];
+                        if (diff > bestAdv.diff) { bestAdv = { diff, label: labels[k] }; }
+                    });
+                    
+                    let reasonTxt = bestAdv.diff > 0 
+                        ? 'because it is <strong>' + Math.round(bestAdv.diff) + ' points stronger</strong> on ' + bestAdv.label
+                        : 'due to better overall balance';
+                        
                     tradeoffHtml = `
                         <div class="tradeoff-box warning">
-                            <p>Costs ${formatRent(deltaCost)} more and adds ${Math.abs(deltaHours).toFixed(1)} hours of travel compared to ${next.name}. You are paying a premium for its ${p.factorSummary.split(',')[0].replace('Strong on ', '')}.</p>
+                            <p>Ranks above ${next.name} despite costing <strong>${formatRent(deltaCost)}/month more</strong> and adding <strong>${Math.abs(deltaHours).toFixed(1)} hours</strong> of travel, ${reasonTxt}.</p>
                         </div>
                     `;
                 }
