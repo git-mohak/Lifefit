@@ -26,17 +26,143 @@ const COSTS = {
     walk: 0
 };
 
-// Find nearest amenity distance
-function nearestDistanceKm(lat, lon, category) {
+// Find nearest amenity 
+function nearestAmenity(lat, lon, category) {
     const amenities = AMENITIES.filter(a => a.category === category);
-    if (amenities.length === 0) return 999;
+    if (amenities.length === 0) return null;
     
     let minD = Infinity;
+    let nearest = null;
     for (let i = 0; i < amenities.length; i++) {
         const d = haversine(lat, lon, amenities[i].lat, amenities[i].lon);
-        if (d < minD) minD = d;
+        if (d < minD) {
+            minD = d;
+            nearest = { ...amenities[i], distanceKm: d };
+        }
     }
-    return minD;
+    return nearest;
+}
+
+function nearestDistanceKm(lat, lon, category) {
+    const a = nearestAmenity(lat, lon, category);
+    return a ? a.distanceKm : 999;
+}
+
+// Estimate rent for an arbitrary point using IDW (Inverse Distance Weighting) of 5 nearest known properties
+function estimateRent(lat, lon) {
+    // Sort all properties by distance
+    const dists = PROPERTIES.map(p => ({
+        p,
+        d: haversine(lat, lon, p.lat, p.lon)
+    })).sort((a, b) => a.d - b.d).slice(0, 5);
+    
+    // Rent per sqft
+    let num = 0;
+    let den = 0;
+    for (let item of dists) {
+        // prevent div by zero if exactly on top
+        const w = 1 / (Math.pow(Math.max(item.d, 0.001), 2));
+        const rentPerSqft = item.p.monthlyRent / item.p.sqft;
+        num += rentPerSqft * w;
+        den += w;
+    }
+    const avgRentPerSqft = num / den;
+    return Math.round(avgRentPerSqft * 1500); // Assume 1500 sqft
+}
+
+// Extract base location scoring logic
+function scoreLocation(lat, lon, monthlyRent, state, normalizeContext = null) {
+    let totalWeeklyHours = 0;
+    let totalMonthlyCommuteCost = 0;
+    let memberBreakdown = [];
+    
+    state.household.forEach(m => {
+        if (!m.lat || !m.lon) return;
+        const distKm = haversine(lat, lon, m.lat, m.lon);
+        const speed = SPEEDS[m.mode] || SPEEDS.car;
+        let oneWayMin = (distKm / speed) * 60;
+        if (oneWayMin < 8) oneWayMin = 8; // min 8 min commute
+        
+        const weeklyHours = (oneWayMin * 2 * m.daysPerWeek) / 60;
+        
+        totalWeeklyHours += weeklyHours;
+        
+        const monthlyKm = distKm * 2 * m.daysPerWeek * 4.33;
+        const costPerKm = COSTS[m.mode] || COSTS.car;
+        totalMonthlyCommuteCost += (monthlyKm * costPerKm);
+        
+        memberBreakdown.push({
+            name: m.name,
+            oneWayMin: Math.round(oneWayMin),
+            mode: m.mode,
+            distKm: distKm.toFixed(1),
+            lat: m.lat,
+            lon: m.lon
+        });
+    });
+    
+    const totalMonthlyCost = monthlyRent + totalMonthlyCommuteCost;
+    
+    const nearestSchool = nearestAmenity(lat, lon, "school");
+    const nearestHospital = nearestAmenity(lat, lon, "hospital");
+    const nearestGrocery = nearestAmenity(lat, lon, "grocery");
+    const nearestMetro = nearestAmenity(lat, lon, "metro");
+    
+    const res = {
+        lat, lon, monthlyRent,
+        totalWeeklyHours,
+        totalMonthlyCost,
+        memberBreakdown,
+        nearestSchool,
+        nearestHospital,
+        nearestGrocery,
+        nearestMetro,
+        raw: {
+            commute: -totalWeeklyHours,
+            school: -(nearestSchool ? nearestSchool.distanceKm : 999),
+            health: -(nearestHospital ? nearestHospital.distanceKm : 999),
+            convenience: -(((nearestGrocery ? nearestGrocery.distanceKm : 999) + (nearestMetro ? nearestMetro.distanceKm : 999))/2),
+            cost: -Math.abs(totalMonthlyCost - state.budget)
+        }
+    };
+    
+    // If context is provided, calculate the normalized scores
+    if (normalizeContext) {
+        const { mins, maxs, nWeights } = normalizeContext;
+        res.scores = {};
+        let finalScore = 0;
+        
+        ['commute', 'school', 'health', 'convenience', 'cost'].forEach(k => {
+            const range = maxs[k] - mins[k];
+            let nScore = 0;
+            if (range === 0) {
+                nScore = 100;
+            } else {
+                // Clamp the raw value to the known mins/maxs context before scoring so it stays 0-100
+                const clampedRaw = Math.max(mins[k], Math.min(maxs[k], res.raw[k]));
+                nScore = ((clampedRaw - mins[k]) / range) * 100;
+            }
+            res.scores[k] = Math.round(nScore);
+            finalScore += nScore * nWeights[k];
+        });
+        
+        res.lifeFitScore = Math.round(finalScore);
+        
+        const labels = { commute: "commute times", school: "school access", health: "healthcare access", convenience: "daily convenience", cost: "cost fit" };
+        let factors = ['commute', 'school', 'health', 'convenience', 'cost'].map(k => ({ key: k, score: res.scores[k], label: labels[k] }));
+        factors.forEach(f => f.score += (Math.random() * 0.1));
+        factors.sort((a, b) => b.score - a.score);
+        
+        const strongest = factors[0];
+        const weakest = factors[4];
+        if (strongest.score - weakest.score < 20) {
+            res.factorSummary = "Balanced across your priorities";
+        } else {
+            res.factorSummary = `Strong on ${strongest.label}, weak on ${weakest.label}`;
+        }
+    }
+    
+    return res;
 }
 
 // Score properties based on state
@@ -44,62 +170,9 @@ function scoreProperties(properties, state) {
     if (properties.length === 0) return [];
     
     // 1. Calculate raw metrics
-    const scored = properties.map(p => {
-        let totalWeeklyHours = 0;
-        let totalMonthlyCommuteCost = 0;
-        let memberBreakdown = [];
-        
-        state.household.forEach(m => {
-            if (!m.lat || !m.lon) return;
-            const distKm = haversine(p.lat, p.lon, m.lat, m.lon);
-            const speed = SPEEDS[m.mode] || SPEEDS.car;
-            let oneWayMin = (distKm / speed) * 60;
-            if (oneWayMin < 8) oneWayMin = 8; // min 8 min commute
-            
-            const weeklyHours = (oneWayMin * 2 * m.daysPerWeek) / 60;
-            
-            totalWeeklyHours += weeklyHours;
-            
-            // Assume 4.33 weeks per month for cost calculation
-            // If min time applies, we don't necessarily scale km cost to min time, but we should use real distance
-            const monthlyKm = distKm * 2 * m.daysPerWeek * 4.33;
-            const costPerKm = COSTS[m.mode] || COSTS.car;
-            totalMonthlyCommuteCost += (monthlyKm * costPerKm);
-            
-            memberBreakdown.push({
-                name: m.name,
-                oneWayMin: Math.round(oneWayMin),
-                mode: m.mode
-            });
-        });
-        
-        const totalMonthlyCost = p.monthlyRent + totalMonthlyCommuteCost;
-        
-        // Amenities
-        // For schools, we just use the nearest distance for now, although rating could be factored in if we find nearest per rating
-        const nearestSchoolDist = nearestDistanceKm(p.lat, p.lon, "school");
-        const nearestHospitalDist = nearestDistanceKm(p.lat, p.lon, "hospital");
-        const nearestGroceryDist = nearestDistanceKm(p.lat, p.lon, "grocery");
-        const nearestMetroDist = nearestDistanceKm(p.lat, p.lon, "metro");
-        
-        return {
-            ...p,
-            totalWeeklyHours,
-            totalMonthlyCost,
-            memberBreakdown,
-            nearestSchoolDist,
-            nearestHospitalDist,
-            nearestGroceryDist,
-            nearestMetroDist,
-            // Intermediate raw values for min-max scaling
-            raw: {
-                commute: -totalWeeklyHours, // negative so higher is better
-                school: -nearestSchoolDist, // negative so higher is better
-                health: -nearestHospitalDist, // negative so higher is better
-                convenience: -(nearestGroceryDist + nearestMetroDist)/2, // negative so higher is better
-                cost: -Math.abs(totalMonthlyCost - state.budget) // negative distance to budget so higher is better (closer to budget)
-            }
-        };
+    let scored = properties.map(p => {
+        const locData = scoreLocation(p.lat, p.lon, p.monthlyRent, state);
+        return { ...p, ...locData };
     });
     
     // 2. Find min/max for normalisation
@@ -126,67 +199,21 @@ function scoreProperties(properties, state) {
     };
 
     // 3. Calculate 0-100 sub-scores and final weighted score
-    scored.forEach(p => {
-        p.scores = {};
-        let finalScore = 0;
-        
-        ['commute', 'school', 'health', 'convenience', 'cost'].forEach(k => {
-            const range = maxs[k] - mins[k];
-            let nScore = 0;
-            if (range === 0) {
-                nScore = 100;
-            } else {
-                nScore = ((p.raw[k] - mins[k]) / range) * 100;
-            }
-            p.scores[k] = Math.round(nScore);
-            finalScore += nScore * nWeights[k];
-        });
-        
-        p.lifeFitScore = Math.round(finalScore);
-        
-        // Figure out strongest/weakest factors uniquely
-        // Convert to array of {key, score, label}
-        const labels = {
-            commute: "commute times",
-            school: "school access",
-            health: "healthcare access",
-            convenience: "daily convenience",
-            cost: "cost fit"
-        };
-        
-        let factors = ['commute', 'school', 'health', 'convenience', 'cost'].map(k => ({
-            key: k,
-            score: p.scores[k],
-            label: labels[k]
-        }));
-        
-        // Add random jitter if scores are exactly equal so we get unique strings
-        // (Just for ties, to ensure unique "strong on X, weak on Y" across similar properties)
-        factors.forEach((f, i) => f.score += (Math.random() * 0.1));
-        
-        factors.sort((a, b) => b.score - a.score);
-        
-        const strongest = factors[0];
-        const weakest = factors[4];
-        
-        if (strongest.score - weakest.score < 20) {
-            p.factorSummary = "Balanced across your priorities";
-        } else {
-            p.factorSummary = `Strong on ${strongest.label}, weak on ${weakest.label}`;
-        }
+    const normalizeContext = { mins, maxs, nWeights };
+    
+    scored = scored.map(p => {
+        const fullScore = scoreLocation(p.lat, p.lon, p.monthlyRent, state, normalizeContext);
+        return { ...p, ...fullScore };
     });
     
     // Sort descending by score
     scored.sort((a, b) => b.lifeFitScore - a.lifeFitScore);
     
-    // Dominance detection (5D: cost, hours, schoolScore, healthScore, convenienceScore)
+    // Dominance detection (5D)
     scored.forEach(p => {
         p.dominatedBy = null;
         for (let other of scored) {
             if (other.id === p.id) continue;
-            // Dominated if another property is at least as good on all 5, and strictly better on at least 1.
-            // Cost and hours: lower is better
-            // Scores (school, health, convenience): higher is better
             
             const costAsGood = other.totalMonthlyCost <= p.totalMonthlyCost;
             const hoursAsGood = other.totalWeeklyHours <= p.totalWeeklyHours;
@@ -209,6 +236,7 @@ function scoreProperties(properties, state) {
             }
         }
     });
-    
-    return scored;
+
+    // Provide normalisation context back so it can be used for arbitrary map points
+    return { scored, normalizeContext };
 }

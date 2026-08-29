@@ -51,10 +51,20 @@ window.closeCompare = function() {
     updateState({ compareQueue: [] });
 };
 
+let mapUpdateTimeout;
+
 function updateApp() {
     renderLeftRail(state, updateState);
-    const scoredProperties = scoreProperties(PROPERTIES, state);
-    renderRightPanel(scoredProperties, state, window.toggleCompare, window.closeCompare);
+    const { scored, normalizeContext } = scoreProperties(PROPERTIES, state);
+    renderRightPanel(scored, state, window.toggleCompare, window.closeCompare);
+    
+    // Debounce map update
+    clearTimeout(mapUpdateTimeout);
+    mapUpdateTimeout = setTimeout(() => {
+        if (window.updateMap) {
+            window.updateMap(scored, state, normalizeContext);
+        }
+    }, 300);
 }
 
 // Initialise
