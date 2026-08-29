@@ -22,6 +22,9 @@ function getSolidScoreColor(score) {
 function initMap(state) {
     try {
         if (!map) {
+            const mapEl = document.getElementById('map');
+            if (!mapEl) return;
+            
             map = L.map('map').setView([12.9716, 77.5946], 11);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
@@ -35,6 +38,11 @@ function initMap(state) {
             map.on('click', (e) => {
                 handleMapClick(e.latlng.lat, e.latlng.lng);
             });
+            
+            // Fix zero height initialization issue by forcing a size recalculation
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 200);
         }
     } catch (e) {
         console.error("Map init failed", e);

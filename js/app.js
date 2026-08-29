@@ -67,5 +67,7 @@ function updateApp() {
     }, 300);
 }
 
-// Initialise
-updateApp();
+// Initialise once DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    updateApp();
+});
