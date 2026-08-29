@@ -3,48 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Life-Fit: Stage 4</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Life-Fit</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.5;
+            filter: blur(8px);
+            pointer-events: none;
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 4rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .logo svg {
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+        }
+
+        .hero {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-width: 800px;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            line-height: 1.1;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subhead {
+            font-size: clamp(1.1rem, 2vw, 1.35rem);
+            line-height: 1.6;
+            color: #94a3b8;
+            margin-bottom: 2.5rem;
+            max-width: 700px;
+        }
+
+        .cta-container {
+            margin-bottom: 4rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #3b82f6;
+            color: white;
+            text-decoration: none;
+            padding: 1rem 2.5rem;
+            border-radius: 8px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .tagline {
+            display: block;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+            color: #64748b;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: auto;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 2rem;
+        }
+
+        .feature {
+            font-size: 1.05rem;
+            color: #e2e8f0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        
+        .feature::before {
+            content: "→";
+            color: #3b82f6;
+            margin-right: 12px;
+            font-weight: bold;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #bg-canvas {
+                animation: none;
+            }
+        }
+    </style>
 </head>
 <body>
+    <canvas id="bg-canvas"></canvas>
+    
+    <div class="content">
+        <header class="header">
+            <a href="/" class="logo">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#3b82f6" stroke-width="8"/>
+                    <path d="M50 20 L50 80 M20 50 L80 50" stroke="#3b82f6" stroke-width="8" stroke-linecap="round"/>
+                    <circle cx="30" cy="30" r="8" fill="#eab308"/>
+                    <circle cx="70" cy="70" r="10" fill="#ef4444"/>
+                    <circle cx="75" cy="35" r="6" fill="#8b5cf6"/>
+                </svg>
+                Life-Fit
+            </a>
+        </header>
 
-    <div class="panel left-panel" id="left-rail">
-        <!-- Rendered by JS -->
+        <main class="hero">
+            <h1>Your family doesn't have one commute. It has four.</h1>
+            <p class="subhead">
+                Life-Fit scores every point in your city against your whole household. Two offices, a school, the gym, your parents' place. Then it shows you what each choice actually costs in money and hours.
+            </p>
+            <div class="cta-container">
+                <a href="app.html?wizard=true" class="btn">Let's get started</a>
+                <span class="tagline">Let's get you settled the best way possible.</span>
+            </div>
+        </main>
+
+        <div class="features">
+            <div class="feature">Every destination, weighted</div>
+            <div class="feature">Trade-offs priced in rupees per hour</div>
+            <div class="feature">The whole city scored, not just the listings</div>
+        </div>
     </div>
 
-    <div class="panel right-panel">
-        <div id="map-container" style="height: 500px; width: 100%; border-radius: 12px; margin-bottom: 2rem; border: 1px solid #e2e8f0; position: relative; z-index: 1;">
-            <div id="map" style="height: 100%; width: 100%; border-radius: 12px;"></div>
-            <div id="map-legend" style="position: absolute; bottom: 10px; right: 10px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 1000; font-size: 0.8rem;">
-                <div style="font-weight:bold; margin-bottom: 5px;">Life-Fit Score</div>
-                <div><span style="display:inline-block; width:15px; height:15px; background:rgba(34, 197, 94, 0.45); margin-right:5px;"></span>90 - 100</div>
-                <div><span style="display:inline-block; width:15px; height:15px; background:rgba(132, 204, 22, 0.45); margin-right:5px;"></span>80 - 89</div>
-                <div><span style="display:inline-block; width:15px; height:15px; background:rgba(234, 179, 8, 0.45); margin-right:5px;"></span>70 - 79</div>
-                <div><span style="display:inline-block; width:15px; height:15px; background:rgba(249, 115, 22, 0.45); margin-right:5px;"></span>60 - 69</div>
-                <div><span style="display:inline-block; width:15px; height:15px; background:rgba(239, 68, 68, 0.45); margin-right:5px;"></span>< 60</div>
-            </div>
-            <div style="position: absolute; top: 10px; left: 50px; background: white; padding: 6px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 1000; font-size: 0.9rem; font-weight: 500;">
-                Click anywhere to score that location
-            </div>
-        </div>
-        
-        <div id="chart-container" style="margin-bottom: 2rem; background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #f3f4f6;">
-            <svg id="frontier-chart" width="100%" height="300" style="overflow: visible;"></svg>
-            <div id="chart-tooltip" style="position: absolute; display: none; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.8rem; pointer-events: none; z-index: 10;"></div>
-            <p style="text-align: center; font-size: 0.85rem; color: #666; margin-top: 1rem;">Each dot is a home. The line is the efficient frontier: no option below or left of it exists. Anything above the line is paying more for the same time.</p>
-        </div>
-        <div class="property-list" id="property-list">
-            <!-- Rendered by JS -->
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <!-- Load the exact same scoring logic used in the app -->
     <script src="js/data-properties.js"></script>
     <script src="js/data-amenities.js"></script>
     <script src="js/scoring.js"></script>
-    <script src="js/map.js"></script>
-    <script src="js/render.js"></script>
-    <script src="js/app.js"></script>
+    <script>
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        const GRID_SIZE = 40;
+        
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Base household definition for the animation
+        const demoState = {
+            budget: 60000,
+            weights: { commute: 8, schools: 6, healthcare: 4, convenience: 5, cost: 7 },
+            household: [
+                { name: "P1", mode: "car", daysPerWeek: 5 },
+                { name: "P2", mode: "car", daysPerWeek: 3 },
+                { name: "P3", mode: "car", daysPerWeek: 5 }
+            ]
+        };
+
+        // Animation parameters
+        const bounds = {
+            latMin: 12.83, latMax: 13.14,
+            lonMin: 77.46, lonMax: 77.78
+        };
+        
+        const centerLat = (bounds.latMin + bounds.latMax) / 2;
+        const centerLon = (bounds.lonMin + bounds.lonMax) / 2;
+        const latRange = (bounds.latMax - bounds.latMin) * 0.4; // keep them somewhat central
+        const lonRange = (bounds.lonMax - bounds.lonMin) * 0.4;
+        
+        let t = 0;
+        
+        // Colors from map.js
+        function getScoreColor(score) {
+            if (score >= 90) return 'rgba(34, 197, 94, 0.45)';
+            if (score >= 80) return 'rgba(132, 204, 22, 0.45)';
+            if (score >= 70) return 'rgba(234, 179, 8, 0.45)';
+            if (score >= 60) return 'rgba(249, 115, 22, 0.45)';
+            return 'rgba(239, 68, 68, 0.45)';
+        }
+
+        // We need a normalization context just to make the scores 0-100 relative to something.
+        // Let's use the static properties for context.
+        const { normalizeContext } = scoreProperties(PROPERTIES, demoState);
+
+        let animationFrameId;
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function drawFrame() {
+            t += 0.05;
+            
+            // Drift destinations using lissajous curves
+            demoState.household[0].lat = centerLat + Math.sin(t * 0.7) * latRange;
+            demoState.household[0].lon = centerLon + Math.cos(t * 0.5) * lonRange;
+            
+            demoState.household[1].lat = centerLat + Math.cos(t * 0.4) * latRange;
+            demoState.household[1].lon = centerLon + Math.sin(t * 0.6) * lonRange;
+            
+            demoState.household[2].lat = centerLat + Math.sin(t * 0.3) * latRange;
+            demoState.household[2].lon = centerLon + Math.cos(t * 0.8) * lonRange;
+            
+            // Draw grid
+            ctx.clearRect(0, 0, width, height);
+            
+            const cellW = width / GRID_SIZE;
+            const cellH = height / GRID_SIZE;
+            
+            const latStep = (bounds.latMax - bounds.latMin) / GRID_SIZE;
+            const lonStep = (bounds.lonMax - bounds.lonMin) / GRID_SIZE;
+            
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const lat = bounds.latMin + i * latStep + (latStep/2);
+                    const lon = bounds.lonMin + j * lonStep + (lonStep/2);
+                    
+                    // Simple dummy rent for the animation to save heavy calculations
+                    const dummyRent = 45000;
+                    
+                    try {
+                        const scoreData = scoreLocation(lat, lon, dummyRent, demoState, normalizeContext);
+                        
+                        ctx.fillStyle = getScoreColor(scoreData.lifeFitScore);
+                        // Map grid to canvas coords: i maps to height, j maps to width
+                        // Invert i so lower lat is at bottom
+                        const canvasY = height - (i * cellH) - cellH;
+                        const canvasX = j * cellW;
+                        
+                        ctx.fillRect(canvasX, canvasY, cellW + 1, cellH + 1); // +1 prevents subpixel gaps
+                    } catch (e) {
+                        // ignore errors on offscreen chunks
+                    }
+                }
+            }
+            
+            if (!prefersReducedMotion) {
+                // ~500ms delay for breathing effect without killing CPU
+                setTimeout(() => {
+                    animationFrameId = requestAnimationFrame(drawFrame);
+                }, 500);
+            }
+        }
+        
+        // Start animation loop
+        drawFrame();
+    </script>
 </body>
 </html>
