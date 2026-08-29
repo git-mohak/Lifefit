@@ -68,6 +68,7 @@ function updateApp() {
 }
 
 // Initialise once DOM is ready
-document.addEventListener('DOMContentLoaded', () => {\n    if (typeof initWizard === 'function') initWizard();
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof initWizard === 'function') initWizard();
     updateApp();
 });

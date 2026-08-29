@@ -32,15 +32,15 @@ function renderWizardStep() {
         
         html += '<h3>Adults</h3>';
         wizardState.adults.forEach((a, i) => {
-            html += '<div class="person-row"><input type="text" placeholder="Optional - we don\\'t need it" value="' + a.name + '" onchange="updateWizPerson(\\'adults\\', ' + i + ', this.value)"><button class="btn-remove" onclick="removeWizPerson(\\'adults\\', ' + i + ')">&times;</button></div>';
+            html += '<div class="person-row"><input type="text" placeholder="Optional - we don\'t need it" value="' + a.name + '" onchange="updateWizPerson(\'adults\', ' + i + ', this.value)"><button class="btn-remove" onclick="removeWizPerson(\'adults\', ' + i + ')">&times;</button></div>';
         });
-        html += '<button class="btn-add" onclick="addWizPerson(\\'adults\\')">+ Add Adult</button>';
+        html += '<button class="btn-add" onclick="addWizPerson(\'adults\')">+ Add Adult</button>';
         
         html += '<h3 style="margin-top: 2rem;">Children</h3>';
         wizardState.children.forEach((c, i) => {
-            html += '<div class="person-row"><input type="text" placeholder="Optional - we don\\'t need it" value="' + c.name + '" onchange="updateWizPerson(\\'children\\', ' + i + ', this.value)"><button class="btn-remove" onclick="removeWizPerson(\\'children\\', ' + i + ')">&times;</button></div>';
+            html += '<div class="person-row"><input type="text" placeholder="Optional - we don\'t need it" value="' + c.name + '" onchange="updateWizPerson(\'children\', ' + i + ', this.value)"><button class="btn-remove" onclick="removeWizPerson(\'children\', ' + i + ')">&times;</button></div>';
         });
-        html += '<button class="btn-add" onclick="addWizPerson(\\'children\\')">+ Add Child</button>';
+        html += '<button class="btn-add" onclick="addWizPerson(\'children\')">+ Add Child</button>';
     } else if (wizardState.step === 3) {
         html += '<h2 class="wizard-title">Where does everyone go each day?</h2>';
         html += '<div class="wizard-why">This is the single biggest driver of how your week actually feels.</div>';
@@ -54,21 +54,21 @@ function renderWizardStep() {
         
         wizardState.adults.forEach((a, i) => {
             html += '<div class="loc-row"><span class="loc-label">' + a.name + ' (Office)</span><div class="loc-controls">';
-            html += '<div><span class="wiz-label">Area</span><select onchange="updateWizLoc(\\'adults\\', ' + i + ', \\'area\\', this.value)"><option value="">Select area...</option>';
+            html += '<div><span class="wiz-label">Area</span><select onchange="updateWizLoc(\'adults\', ' + i + ', \'area\', this.value)"><option value="">Select area...</option>';
             areas.forEach(area => { html += '<option value="' + area + '" ' + (a.area === area ? 'selected' : '') + '>' + area + '</option>'; });
             html += '</select></div>';
-            html += '<div><span class="wiz-label">Days/week</span><input type="number" min="1" max="7" value="' + (a.days || 5) + '" onchange="updateWizLoc(\\'adults\\', ' + i + ', \\'days\\', this.value)"></div>';
-            html += '<div><span class="wiz-label">Mode</span><select onchange="updateWizLoc(\\'adults\\', ' + i + ', \\'mode\\', this.value)"><option value="car" ' + (a.mode === 'car' ? 'selected' : '') + '>Car</option><option value="transit" ' + (a.mode === 'transit' ? 'selected' : '') + '>Transit</option><option value="walk" ' + (a.mode === 'walk' ? 'selected' : '') + '>Walk</option></select></div>';
+            html += '<div><span class="wiz-label">Days/week</span><input type="number" min="1" max="7" value="' + (a.days || 5) + '" onchange="updateWizLoc(\'adults\', ' + i + ', \'days\', this.value)"></div>';
+            html += '<div><span class="wiz-label">Mode</span><select onchange="updateWizLoc(\'adults\', ' + i + ', \'mode\', this.value)"><option value="car" ' + (a.mode === 'car' ? 'selected' : '') + '>Car</option><option value="transit" ' + (a.mode === 'transit' ? 'selected' : '') + '>Transit</option><option value="walk" ' + (a.mode === 'walk' ? 'selected' : '') + '>Walk</option></select></div>';
             html += '</div></div>';
         });
         
         wizardState.children.forEach((c, i) => {
             html += '<div class="loc-row"><span class="loc-label">' + c.name + ' (School)</span><div class="loc-controls">';
-            html += '<div><span class="wiz-label">Area</span><select onchange="updateWizLoc(\\'children\\', ' + i + ', \\'area\\', this.value)"><option value="">Select area...</option>';
+            html += '<div><span class="wiz-label">Area</span><select onchange="updateWizLoc(\'children\', ' + i + ', \'area\', this.value)"><option value="">Select area...</option>';
             areas.forEach(area => { html += '<option value="' + area + '" ' + (c.area === area ? 'selected' : '') + '>' + area + '</option>'; });
             html += '</select></div>';
-            html += '<div><span class="wiz-label">Days/week</span><input type="number" min="1" max="7" value="' + (c.days || 5) + '" onchange="updateWizLoc(\\'children\\', ' + i + ', \\'days\\', this.value)"></div>';
-            html += '<div><span class="wiz-label">Mode</span><select onchange="updateWizLoc(\\'children\\', ' + i + ', \\'mode\\', this.value)"><option value="car" ' + (c.mode === 'car' ? 'selected' : '') + '>Car</option><option value="transit" ' + (c.mode === 'transit' ? 'selected' : '') + '>Transit</option><option value="walk" ' + (c.mode === 'walk' ? 'selected' : '') + '>Walk</option></select></div>';
+            html += '<div><span class="wiz-label">Days/week</span><input type="number" min="1" max="7" value="' + (c.days || 5) + '" onchange="updateWizLoc(\'children\', ' + i + ', \'days\', this.value)"></div>';
+            html += '<div><span class="wiz-label">Mode</span><select onchange="updateWizLoc(\'children\', ' + i + ', \'mode\', this.value)"><option value="car" ' + (c.mode === 'car' ? 'selected' : '') + '>Car</option><option value="transit" ' + (c.mode === 'transit' ? 'selected' : '') + '>Transit</option><option value="walk" ' + (c.mode === 'walk' ? 'selected' : '') + '>Walk</option></select></div>';
             html += '</div></div>';
         });
     }
