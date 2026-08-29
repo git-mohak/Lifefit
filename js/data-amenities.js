@@ -21,14 +21,14 @@ const AMENITIES = [
   { id: 17, name: "Narayana Multispeciality HSR", category: "hospital", lat: 12.9100, lon: 77.6485 },
   { id: 18, name: "St. John's Hospital", category: "hospital", lat: 12.9298, lon: 77.6186 },
 
-  // Grocery
+  // Groceries (make sure not all are close to everything)
   { id: 19, name: "Nature's Basket Koramangala", category: "grocery", lat: 12.9348, lon: 77.6225 },
   { id: 20, name: "Nature's Basket Indiranagar", category: "grocery", lat: 12.9719, lon: 77.6412 },
-  { id: 21, name: "Nature's Basket Whitefield", category: "grocery", lat: 12.9739, lon: 77.7336 },
   { id: 22, name: "Star Bazaar HSR", category: "grocery", lat: 12.9123, lon: 77.6401 },
   { id: 23, name: "More Megastore Mahadevapura", category: "grocery", lat: 12.9922, lon: 77.6835 },
   { id: 24, name: "Spar Bannerghatta", category: "grocery", lat: 12.9095, lon: 77.5975 },
   { id: 25, name: "Reliance Smart Bellandur", category: "grocery", lat: 12.9308, lon: 77.6749 },
+
   
   // Metro
   { id: 26, name: "Indiranagar Metro", category: "metro", lat: 12.9783, lon: 77.6387 },

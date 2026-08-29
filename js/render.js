@@ -31,6 +31,14 @@ function renderLeftRail(state, onStateChange) {
         </div>
         
         <div class="section">
+            <h3>Time Value</h3>
+            <label>What is an hour of your household's time worth? (₹/hr)
+                <input type="number" id="time-value-input" value="${state.timeValue}" step="50">
+            </label>
+            <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 0.25rem;">A Rs 18 lakh salary works out to roughly Rs 950 an hour.</small>
+        </div>
+        
+        <div class="section">
             <h3>Priorities</h3>
             ${renderSlider('commute', 'Commute', state.weights.commute)}
             ${renderSlider('schools', 'Schools', state.weights.schools)}
@@ -43,6 +51,9 @@ function renderLeftRail(state, onStateChange) {
     // Attach listeners
     document.getElementById('budget-input').addEventListener('input', (e) => {
         onStateChange({ budget: parseInt(e.target.value) || 0 });
+    });
+    document.getElementById('time-value-input').addEventListener('input', (e) => {
+        onStateChange({ timeValue: parseInt(e.target.value) || 0 });
     });
     
     ['commute', 'schools', 'healthcare', 'convenience', 'cost'].forEach(id => {
@@ -74,15 +85,65 @@ function formatRent(amount) {
     }).format(amount);
 }
 
-function renderRightPanel(scoredProperties, budget) {
+function renderRightPanel(scoredProperties, state, toggleCompare, closeCompare) {
     const list = document.getElementById('property-list');
     list.innerHTML = '';
     
+    // Dominance summary
+    const dominatedCount = scoredProperties.filter(p => p.dominatedBy).length;
+    if (dominatedCount > 0) {
+        const sumDiv = document.createElement('div');
+        sumDiv.className = 'summary-line';
+        sumDiv.textContent = `${dominatedCount} of ${scoredProperties.length} options are strictly worse than at least one alternative on both cost and time.`;
+        list.appendChild(sumDiv);
+    }
+    
     scoredProperties.forEach((p, index) => {
-        const costDiff = p.totalMonthlyCost - budget;
+        const costDiff = p.totalMonthlyCost - state.budget;
         let costLabel = costDiff > 0 ? `+${formatRent(costDiff)} over` : `${formatRent(Math.abs(costDiff))} under`;
         
         const commuteBreaks = p.memberBreakdown.map(m => `${m.name}: ${m.oneWayMin}m`).join(' • ');
+
+        let dominanceTag = '';
+        if (p.dominatedBy) {
+            dominanceTag = `<span class="tag dominated" title="Dominated by ${p.dominatedBy}">Dominated</span>`;
+        }
+        
+        let tradeoffHtml = '';
+        if (index < scoredProperties.length - 1) {
+            const next = scoredProperties[index + 1];
+            const deltaCost = p.totalMonthlyCost - next.totalMonthlyCost;
+            const deltaHours = (next.totalWeeklyHours - p.totalWeeklyHours) * 4.33;
+            
+            if (deltaCost > 0 && deltaHours > 0) {
+                const impliedRate = deltaCost / deltaHours;
+                const verdict = impliedRate <= state.timeValue ? "Worth it" : "Hard to justify";
+                const vClass = impliedRate <= state.timeValue ? "worth-it" : "hard-to-justify";
+                tradeoffHtml = `
+                    <div class="tradeoff-box">
+                        <p>Costs <strong>${formatRent(deltaCost)}/month</strong> more than ${next.name} but recovers <strong>${deltaHours.toFixed(1)} hours</strong> a month of household travel. That works out to <strong>${formatRent(impliedRate)} per hour</strong> of family time, compared to your stated value of ${formatRent(state.timeValue)}/hr.</p>
+                        <div class="verdict ${vClass}">${verdict}</div>
+                    </div>
+                `;
+            } else if (deltaCost < 0 && deltaHours > 0) {
+                tradeoffHtml = `
+                    <div class="tradeoff-box free-win">
+                        <p>Strictly better than ${next.name}. Cheaper by ${formatRent(Math.abs(deltaCost))} a month and saves ${deltaHours.toFixed(1)} hours.</p>
+                        <div class="verdict worth-it">Free win</div>
+                    </div>
+                `;
+            } else if (deltaCost > 0 && deltaHours < 0) {
+                // Costs more and takes longer
+                // Figure out what it buys
+                tradeoffHtml = `
+                    <div class="tradeoff-box warning">
+                        <p>Costs ${formatRent(deltaCost)} more and adds ${Math.abs(deltaHours).toFixed(1)} hours of travel compared to ${next.name}. You are paying a premium for its ${p.factorSummary.split(',')[0].replace('Strong on ', '')}.</p>
+                    </div>
+                `;
+            }
+        }
+
+        const isComparing = state.compareQueue.includes(p.id);
 
         const card = document.createElement('div');
         card.className = 'property-card';
@@ -93,13 +154,16 @@ function renderRightPanel(scoredProperties, budget) {
             <div class="property-content">
                 <div class="property-header">
                     <div class="title-group">
-                        <div class="property-name">${p.name}</div>
+                        <div class="property-name">${p.name} ${dominanceTag}</div>
                         <div class="property-area">${p.area} • ${p.bedrooms} BHK • ${p.sqft} sqft</div>
                     </div>
-                    <div class="score-container">
-                        <div class="property-score">${p.lifeFitScore}/100</div>
-                        <div class="score-bar-bg">
-                            <div class="score-bar-fill" style="width: ${p.lifeFitScore}%"></div>
+                    <div class="score-group">
+                        <button class="btn-compare ${isComparing ? 'active' : ''}" onclick="window.toggleCompare(${p.id})">${isComparing ? 'Selected' : 'Compare'}</button>
+                        <div class="score-container">
+                            <div class="property-score">${p.lifeFitScore}/100</div>
+                            <div class="score-bar-bg">
+                                <div class="score-bar-fill" style="width: ${p.lifeFitScore}%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -114,8 +178,72 @@ function renderRightPanel(scoredProperties, budget) {
                 </div>
                 
                 <div class="factor-summary">${p.factorSummary}</div>
+                ${tradeoffHtml}
             </div>
         `;
         list.appendChild(card);
     });
+
+    // Render compare modal if 2 items selected
+    if (state.compareQueue.length === 2) {
+        const p1 = scoredProperties.find(p => p.id === state.compareQueue[0]);
+        const p2 = scoredProperties.find(p => p.id === state.compareQueue[1]);
+        if (p1 && p2) renderCompareModal(p1, p2, state.timeValue);
+    } else {
+        const existing = document.getElementById('compare-modal');
+        if (existing) existing.remove();
+    }
+}
+
+function renderCompareModal(p1, p2, timeValue) {
+    let modal = document.getElementById('compare-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'compare-modal';
+        modal.className = 'compare-modal';
+        document.body.appendChild(modal);
+    }
+
+    const deltaCost = p1.totalMonthlyCost - p2.totalMonthlyCost;
+    const deltaHours = (p2.totalWeeklyHours - p1.totalWeeklyHours) * 4.33;
+    
+    let verdictHtml = '';
+    if (deltaCost > 0 && deltaHours > 0) {
+        const impliedRate = deltaCost / deltaHours;
+        const vClass = impliedRate <= timeValue ? "worth-it" : "hard-to-justify";
+        verdictHtml = `<div class="verdict ${vClass}">Implied rate: ${formatRent(impliedRate)}/hr</div>`;
+    } else if (deltaCost < 0 && deltaHours > 0) {
+        verdictHtml = `<div class="verdict worth-it">Free win for ${p1.name}</div>`;
+    } else if (deltaCost > 0 && deltaHours < 0) {
+        verdictHtml = `<div class="verdict hard-to-justify">Worse on both metrics</div>`;
+    }
+
+    modal.innerHTML = `
+        <div class="compare-content">
+            <button class="close-btn" onclick="window.closeCompare()">X</button>
+            <h2>Comparison</h2>
+            <div class="compare-grid">
+                <div class="compare-col">
+                    <h3>${p1.name}</h3>
+                    <p>${formatRent(p1.totalMonthlyCost)}/mo</p>
+                    <p>${p1.totalWeeklyHours.toFixed(1)} hrs/wk</p>
+                    <div style="font-size:0.85rem; margin-top:0.5rem; color:#666;">
+                        ${p1.memberBreakdown.map(m => `<div>${m.name}: ${m.oneWayMin}m</div>`).join('')}
+                    </div>
+                </div>
+                <div class="compare-col vs-col">
+                    <div>VS</div>
+                    ${verdictHtml}
+                </div>
+                <div class="compare-col">
+                    <h3>${p2.name}</h3>
+                    <p>${formatRent(p2.totalMonthlyCost)}/mo</p>
+                    <p>${p2.totalWeeklyHours.toFixed(1)} hrs/wk</p>
+                    <div style="font-size:0.85rem; margin-top:0.5rem; color:#666;">
+                        ${p2.memberBreakdown.map(m => `<div>${m.name}: ${m.oneWayMin}m</div>`).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 }

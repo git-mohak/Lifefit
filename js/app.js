@@ -7,13 +7,15 @@ let state = {
         { name: "Aarav", role: "child", destinationName: "HSR Layout School", lat: 12.9116, lon: 77.6389, daysPerWeek: 5, mode: "car" }
     ],
     budget: 60000,
+    timeValue: 950,
     weights: {
         commute: 8,
         schools: 6,
         healthcare: 4,
         convenience: 5,
         cost: 7
-    }
+    },
+    compareQueue: []
 };
 
 function updateState(partial) {
@@ -34,10 +36,25 @@ window.removeMember = function(index) {
     updateState({ household: newHousehold });
 };
 
+window.toggleCompare = function(id) {
+    let q = [...state.compareQueue];
+    if (q.includes(id)) {
+        q = q.filter(x => x !== id);
+    } else {
+        q.push(id);
+        if (q.length > 2) q.shift();
+    }
+    updateState({ compareQueue: q });
+};
+
+window.closeCompare = function() {
+    updateState({ compareQueue: [] });
+};
+
 function updateApp() {
     renderLeftRail(state, updateState);
     const scoredProperties = scoreProperties(PROPERTIES, state);
-    renderRightPanel(scoredProperties, state.budget);
+    renderRightPanel(scoredProperties, state, window.toggleCompare, window.closeCompare);
 }
 
 // Initialise

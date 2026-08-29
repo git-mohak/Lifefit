@@ -1,6 +1,6 @@
 // All math, no DOM
 
-// Haversine formula for distance in km
+// Haversine formula for distance in km, adjusted for road circuity
 function haversine(lat1, lon1, lat2, lon2) {
     const R = 6371; // km
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -9,7 +9,7 @@ function haversine(lat1, lon1, lat2, lon2) {
               Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
               Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    return R * c * 1.4; // Apply 1.4 circuity factor
 }
 
 // Speeds in km/h
@@ -53,13 +53,16 @@ function scoreProperties(properties, state) {
             if (!m.lat || !m.lon) return;
             const distKm = haversine(p.lat, p.lon, m.lat, m.lon);
             const speed = SPEEDS[m.mode] || SPEEDS.car;
-            const oneWayMin = (distKm / speed) * 60;
+            let oneWayMin = (distKm / speed) * 60;
+            if (oneWayMin < 8) oneWayMin = 8; // min 8 min commute
+            
             const weeklyHours = (oneWayMin * 2 * m.daysPerWeek) / 60;
             
             totalWeeklyHours += weeklyHours;
             
-            // Assume 4 weeks per month for cost calculation
-            const monthlyKm = distKm * 2 * m.daysPerWeek * 4;
+            // Assume 4.33 weeks per month for cost calculation
+            // If min time applies, we don't necessarily scale km cost to min time, but we should use real distance
+            const monthlyKm = distKm * 2 * m.daysPerWeek * 4.33;
             const costPerKm = COSTS[m.mode] || COSTS.car;
             totalMonthlyCommuteCost += (monthlyKm * costPerKm);
             
@@ -141,14 +144,8 @@ function scoreProperties(properties, state) {
         
         p.lifeFitScore = Math.round(finalScore);
         
-        // Figure out strongest/weakest factors
-        let strongestK = 'commute';
-        let weakestK = 'commute';
-        ['school', 'health', 'convenience', 'cost'].forEach(k => {
-            if (p.scores[k] > p.scores[strongestK]) strongestK = k;
-            if (p.scores[k] < p.scores[weakestK]) weakestK = k;
-        });
-        
+        // Figure out strongest/weakest factors uniquely
+        // Convert to array of {key, score, label}
         const labels = {
             commute: "commute times",
             school: "school access",
@@ -157,15 +154,47 @@ function scoreProperties(properties, state) {
             cost: "cost fit"
         };
         
-        if (p.scores[strongestK] - p.scores[weakestK] < 20) {
+        let factors = ['commute', 'school', 'health', 'convenience', 'cost'].map(k => ({
+            key: k,
+            score: p.scores[k],
+            label: labels[k]
+        }));
+        
+        // Add random jitter if scores are exactly equal so we get unique strings
+        // (Just for ties, to ensure unique "strong on X, weak on Y" across similar properties)
+        factors.forEach((f, i) => f.score += (Math.random() * 0.1));
+        
+        factors.sort((a, b) => b.score - a.score);
+        
+        const strongest = factors[0];
+        const weakest = factors[4];
+        
+        if (strongest.score - weakest.score < 20) {
             p.factorSummary = "Balanced across your priorities";
         } else {
-            p.factorSummary = `Strong on ${labels[strongestK]}, weak on ${labels[weakestK]}`;
+            p.factorSummary = `Strong on ${strongest.label}, weak on ${weakest.label}`;
         }
     });
     
     // Sort descending by score
     scored.sort((a, b) => b.lifeFitScore - a.lifeFitScore);
+    
+    // Dominance detection
+    scored.forEach(p => {
+        p.dominatedBy = null;
+        for (let other of scored) {
+            if (other.id === p.id) continue;
+            // Dominated if another property is strictly better (or equal and better) on both metrics
+            // We use < for cost/hours (lower is better).
+            // A property is strictly better if it's <= on both and < on at least one.
+            if (other.totalMonthlyCost <= p.totalMonthlyCost && other.totalWeeklyHours <= p.totalWeeklyHours) {
+                if (other.totalMonthlyCost < p.totalMonthlyCost || other.totalWeeklyHours < p.totalWeeklyHours) {
+                    p.dominatedBy = other.name;
+                    break;
+                }
+            }
+        }
+    });
     
     return scored;
 }
