@@ -33,6 +33,12 @@ function renderLeftRail(state, onStateChange) {
             </div>
             
             <div class="section">
+                <h3>Places that matter</h3>
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">Add locations you visit regularly. The map will score how easy it is to reach all of them.</p>
+                <button onclick="alert('Not implemented in this stage')" style="padding: 0.4rem 0.8rem; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer;">+ Add Location</button>
+            </div>
+            
+            <div class="section">
                 <h3>Time Value</h3>
                 <label>What is an hour of your household's time worth? (₹/hr)
                     <input type="number" id="time-value-input" value="${state.timeValue}" step="50">

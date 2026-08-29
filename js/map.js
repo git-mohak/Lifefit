@@ -62,19 +62,52 @@ function drawGrid(state, normalizeContext) {
     const latStep = (latMax - latMin) / steps;
     const lonStep = (lonMax - lonMin) / steps;
     
+    // Grid center for fading
+    const centerLat = (latMin + latMax) / 2;
+    const centerLon = (lonMin + lonMax) / 2;
+    const latHalfRange = (latMax - latMin) / 2;
+    const lonHalfRange = (lonMax - lonMin) / 2;
+    
     for (let i = 0; i < steps; i++) {
         for (let j = 0; j < steps; j++) {
             const lat = latMin + i * latStep;
             const lon = lonMin + j * lonStep;
             
             // Score this cell center
-            const estimatedRent = estimateRent(lat + latStep/2, lon + lonStep/2);
-            const scoreData = scoreLocation(lat + latStep/2, lon + lonStep/2, estimatedRent, state, normalizeContext);
+            const cellLat = lat + latStep/2;
+            const cellLon = lon + lonStep/2;
+            
+            // Feather the heatmap edge
+            const normLatDist = Math.abs(cellLat - centerLat) / latHalfRange;
+            const normLonDist = Math.abs(cellLon - centerLon) / lonHalfRange;
+            const maxNormDist = Math.max(normLatDist, normLonDist);
+            
+            let alphaFalloff = 1.0;
+            if (maxNormDist > 0.8) {
+                // Scale linearly from 1 down to 0 as dist goes from 0.8 to 1.0
+                alphaFalloff = 1.0 - ((maxNormDist - 0.8) / 0.2);
+                if (alphaFalloff < 0) alphaFalloff = 0;
+            }
+            
+            if (alphaFalloff <= 0) continue; // Skip totally transparent cells
+            
+            const estimatedRent = estimateRent(cellLat, cellLon);
+            const scoreData = scoreLocation(cellLat, cellLon, estimatedRent, state, normalizeContext);
+            
+            const baseColorStr = getScoreColor(scoreData.lifeFitScore); // "rgba(r, g, b, 0.45)"
+            const alphaMatch = baseColorStr.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)/);
+            let finalColorStr = baseColorStr;
+            
+            if (alphaMatch && alphaFalloff < 1.0) {
+                const baseAlpha = parseFloat(alphaMatch[4]);
+                const finalAlpha = baseAlpha * alphaFalloff;
+                finalColorStr = `rgba(${alphaMatch[1]}, ${alphaMatch[2]}, ${alphaMatch[3]}, ${finalAlpha})`;
+            }
             
             const bounds = [[lat, lon], [lat + latStep, lon + lonStep]];
             const rect = L.rectangle(bounds, {
                 color: 'transparent',
-                fillColor: getScoreColor(scoreData.lifeFitScore),
+                fillColor: finalColorStr,
                 fillOpacity: 1
             });
             gridLayer.addLayer(rect);
@@ -89,15 +122,25 @@ function drawMarkers(scoredProperties, state) {
     // Draw household destinations
     state.household.forEach(m => {
         if (!m.lat || !m.lon) return;
-        const marker = L.circleMarker([m.lat, m.lon], {
-            radius: 8,
-            fillColor: "#000",
-            color: "#fff",
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.8
+        
+        const initial = m.name ? m.name.charAt(0).toUpperCase() : '?';
+        
+        // Define distinct colors for the badges (up to 5, then repeating)
+        const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'];
+        // Pick a color somewhat deterministically based on name length or just index-like (we'll just hash the name simple)
+        let colorIdx = 0;
+        for (let i = 0; i < m.name.length; i++) colorIdx += m.name.charCodeAt(i);
+        const color = colors[colorIdx % colors.length];
+
+        const customIcon = L.divIcon({
+            html: `<div style="background-color: ${color}; color: white; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${initial}</div>`,
+            className: '',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
         });
-        marker.bindTooltip(`<b>${m.name}</b><br>${m.destinationName}`, { permanent: true, direction: 'top', className: 'destination-tooltip' });
+
+        const marker = L.marker([m.lat, m.lon], { icon: customIcon });
+        marker.bindTooltip(`<b>${m.name}</b><br>${m.destinationName}`, { permanent: false, direction: 'top', className: 'destination-tooltip' });
         markersLayer.addLayer(marker);
     });
     
