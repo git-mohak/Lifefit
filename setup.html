@@ -160,7 +160,7 @@
             </svg>
             Life-Fit
         </div>
-        <a href="#" class="skip-link" onclick="skipWizard(); return false;">Skip - use a demo household</a>
+        <a href="app.html" class="skip-link" onclick="try{localStorage.removeItem('lifefit_state')}catch(e){}">Skip - use a demo household</a>
     </header>
 
     <div class="wizard-container" id="wizard-container">
@@ -176,6 +176,7 @@
         };
 
         function render() {
+        try {
             const container = document.getElementById('wizard-container');
             let html = '<div class="step-ind">Step ' + wizState.step + ' of 6</div>';
             
@@ -193,15 +194,15 @@
                 
                 html += '<h3>Adults</h3>';
                 wizState.adults.forEach((a, i) => {
-                    html += '<div class="person-row"><input type="text" placeholder="Optional - we don\\'t need it" value="' + a.name + '" onchange="updatePerson(\\'adults\\', ' + i + ', this.value)"><button class="btn-remove" onclick="removePerson(\\'adults\\', ' + i + ')">&times;</button></div>';
+                    html += '<div class="person-row"><input type="text" placeholder="Optional - we don\'t need it" value="' + a.name + '" onchange="updatePerson(\'adults\', ' + i + ', this.value)"><button class="btn-remove" onclick="removePerson(\'adults\', ' + i + ')">&times;</button></div>';
                 });
-                html += '<button class="btn-add" onclick="addPerson(\\'adults\\')">+ Add Adult</button>';
+                html += '<button class="btn-add" onclick="addPerson(\'adults\')">+ Add Adult</button>';
                 
                 html += '<h3>Children</h3>';
                 wizState.children.forEach((c, i) => {
-                    html += '<div class="person-row"><input type="text" placeholder="Optional - we don\\'t need it" value="' + c.name + '" onchange="updatePerson(\\'children\\', ' + i + ', this.value)"><button class="btn-remove" onclick="removePerson(\\'children\\', ' + i + ')">&times;</button></div>';
+                    html += '<div class="person-row"><input type="text" placeholder="Optional - we don\'t need it" value="' + c.name + '" onchange="updatePerson(\'children\', ' + i + ', this.value)"><button class="btn-remove" onclick="removePerson(\'children\', ' + i + ')">&times;</button></div>';
                 });
-                html += '<button class="btn-add" onclick="addPerson(\\'children\\')">+ Add Child</button>';
+                html += '<button class="btn-add" onclick="addPerson(\'children\')">+ Add Child</button>';
             }
             
             html += '<div class="footer">';
@@ -212,13 +213,17 @@
             }
             
             if (wizState.step === 2) {
-                html += '<button class="btn btn-primary" onclick="alert(\\'Steps 3-6 coming next\\')">Next</button>';
+                html += '<button class="btn btn-primary" onclick="alert(\'Steps 3-6 coming next\')">Next</button>';
             } else {
                 html += '<button class="btn btn-primary" onclick="nextStep()">Next</button>';
             }
             html += '</div>';
             
             container.innerHTML = html;
+        } catch(e) {
+            document.getElementById('wizard-container').innerHTML = '<div style="color: red; padding: 2rem;">Fatal Error rendering step ' + wizState.step + ': ' + e.message + '</div>';
+            console.error(e);
+        }
         }
 
         function nextStep() { wizState.step++; render(); }
