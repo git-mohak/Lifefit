@@ -179,16 +179,30 @@ function scoreProperties(properties, state) {
     // Sort descending by score
     scored.sort((a, b) => b.lifeFitScore - a.lifeFitScore);
     
-    // Dominance detection
+    // Dominance detection (5D: cost, hours, schoolScore, healthScore, convenienceScore)
     scored.forEach(p => {
         p.dominatedBy = null;
         for (let other of scored) {
             if (other.id === p.id) continue;
-            // Dominated if another property is strictly better (or equal and better) on both metrics
-            // We use < for cost/hours (lower is better).
-            // A property is strictly better if it's <= on both and < on at least one.
-            if (other.totalMonthlyCost <= p.totalMonthlyCost && other.totalWeeklyHours <= p.totalWeeklyHours) {
-                if (other.totalMonthlyCost < p.totalMonthlyCost || other.totalWeeklyHours < p.totalWeeklyHours) {
+            // Dominated if another property is at least as good on all 5, and strictly better on at least 1.
+            // Cost and hours: lower is better
+            // Scores (school, health, convenience): higher is better
+            
+            const costAsGood = other.totalMonthlyCost <= p.totalMonthlyCost;
+            const hoursAsGood = other.totalWeeklyHours <= p.totalWeeklyHours;
+            const schoolAsGood = other.scores.school >= p.scores.school;
+            const healthAsGood = other.scores.health >= p.scores.health;
+            const convAsGood = other.scores.convenience >= p.scores.convenience;
+            
+            if (costAsGood && hoursAsGood && schoolAsGood && healthAsGood && convAsGood) {
+                const strictlyBetter = 
+                    (other.totalMonthlyCost < p.totalMonthlyCost) ||
+                    (other.totalWeeklyHours < p.totalWeeklyHours) ||
+                    (other.scores.school > p.scores.school) ||
+                    (other.scores.health > p.scores.health) ||
+                    (other.scores.convenience > p.scores.convenience);
+                    
+                if (strictlyBetter) {
                     p.dominatedBy = other.name;
                     break;
                 }

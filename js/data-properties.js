@@ -25,7 +25,7 @@ const PROPERTIES = [
   { id: 19, name: "Bhartiya City Nikoo Homes", area: "Thanisandra", lat: 13.0784, lon: 77.6360, monthlyRent: 38000, bedrooms: 2, sqft: 1250 },
   { id: 20, name: "Suncity Apartments", area: "Sarjapur Road", lat: 12.9165, lon: 77.6698, monthlyRent: 35000, bedrooms: 2, sqft: 1200 },
   { id: 21, name: "Ajmera Infinity", area: "Electronic City", lat: 12.8465, lon: 77.6534, monthlyRent: 33000, bedrooms: 2, sqft: 1150 },
-  { id: 22, name: "RMV Clusters", area: "Hebbal", lat: 13.0425, lon: 77.5815, monthlyRent: 32000, bedrooms: 2, sqft: 1150 },
+  { id: 22, name: "Prestige Augusta Golf Village", area: "Horamavu", lat: 13.0335, lon: 77.6521, monthlyRent: 32000, bedrooms: 2, sqft: 1150 },
   { id: 23, name: "Prestige Sunrise Park", area: "Electronic City", lat: 12.8364, lon: 77.6599, monthlyRent: 28000, bedrooms: 2, sqft: 1100 },
   { id: 24, name: "Godrej Avenues", area: "Yelahanka", lat: 13.1098, lon: 77.5855, monthlyRent: 26000, bedrooms: 2, sqft: 1050 }
 ];

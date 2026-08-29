@@ -85,16 +85,116 @@ function formatRent(amount) {
     }).format(amount);
 }
 
-function renderRightPanel(scoredProperties, state, toggleCompare, closeCompare) {
+function renderChart(properties) {
+    const svg = document.getElementById('frontier-chart');
+    if (!svg) return;
+    
+    // Clear previous
+    svg.innerHTML = '';
+    
+    const width = svg.clientWidth || 800;
+    const height = 300;
+    const padding = { top: 20, right: 30, bottom: 40, left: 60 };
+    
+    const innerWidth = width - padding.left - padding.right;
+    const innerHeight = height - padding.top - padding.bottom;
+    
+    // X axis: hours, Y axis: cost
+    const maxHours = Math.max(...properties.map(p => p.totalWeeklyHours)) * 1.1;
+    const maxCost = Math.max(...properties.map(p => p.totalMonthlyCost)) * 1.1;
+    
+    const scaleX = (val) => padding.left + (val / maxHours) * innerWidth;
+    const scaleY = (val) => height - padding.bottom - (val / maxCost) * innerHeight;
+    
+    // Calculate 2D frontier (cost vs hours) for the chart
+    let frontierPoints = [];
+    properties.forEach(p => {
+        let dominated2D = false;
+        for (let other of properties) {
+            if (other.id === p.id) continue;
+            if (other.totalMonthlyCost <= p.totalMonthlyCost && other.totalWeeklyHours <= p.totalWeeklyHours) {
+                if (other.totalMonthlyCost < p.totalMonthlyCost || other.totalWeeklyHours < p.totalWeeklyHours) {
+                    dominated2D = true;
+                    break;
+                }
+            }
+        }
+        if (!dominated2D) frontierPoints.push(p);
+    });
+    
+    // Sort frontier by hours (left to right)
+    frontierPoints.sort((a, b) => a.totalWeeklyHours - b.totalWeeklyHours);
+    
+    // Draw axes
+    const axesHtml = `
+        <line x1="${padding.left}" y1="${height - padding.bottom}" x2="${width - padding.right}" y2="${height - padding.bottom}" stroke="#ccc" />
+        <line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${height - padding.bottom}" stroke="#ccc" />
+        <text x="${width / 2}" y="${height - 5}" text-anchor="middle" font-size="12" fill="#666">Household Travel (hrs/wk)</text>
+        <text x="${padding.left - 45}" y="${height / 2}" transform="rotate(-90, ${padding.left - 45}, ${height / 2})" text-anchor="middle" font-size="12" fill="#666">Monthly Cost (₹)</text>
+    `;
+    svg.insertAdjacentHTML('beforeend', axesHtml);
+    
+    // Draw frontier line
+    if (frontierPoints.length > 1) {
+        let pathD = `M ${scaleX(frontierPoints[0].totalWeeklyHours)} ${scaleY(frontierPoints[0].totalMonthlyCost)}`;
+        for (let i = 1; i < frontierPoints.length; i++) {
+            pathD += ` L ${scaleX(frontierPoints[i].totalWeeklyHours)} ${scaleY(frontierPoints[i].totalMonthlyCost)}`;
+        }
+        svg.insertAdjacentHTML('beforeend', `<path d="${pathD}" fill="none" stroke="#3b82f6" stroke-width="2" />`);
+    }
+    
+    // Draw dots
+    const tooltip = document.getElementById('chart-tooltip');
+    const topRankedId = properties[0].id;
+    
+    properties.forEach(p => {
+        const cx = scaleX(p.totalWeeklyHours);
+        const cy = scaleY(p.totalMonthlyCost);
+        const isFrontier = frontierPoints.includes(p);
+        const isTop = p.id === topRankedId;
+        
+        const r = isFrontier ? 6 : 4;
+        const fill = isFrontier ? "#3b82f6" : "#cbd5e1";
+        
+        let ringHtml = '';
+        if (isTop) {
+            ringHtml = `<circle cx="${cx}" cy="${cy}" r="10" fill="none" stroke="#eab308" stroke-width="3" />
+                        <text x="${cx}" y="${cy - 15}" text-anchor="middle" font-weight="bold" font-size="12" fill="#eab308">#1 Ranked</text>`;
+        }
+        
+        const circleHtml = `
+            ${ringHtml}
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" style="cursor:pointer"
+                onmouseover="showTooltip(event, '${p.name}', '${p.area}', ${p.totalMonthlyCost}, ${p.totalWeeklyHours.toFixed(1)})"
+                onmouseout="hideTooltip()" />
+        `;
+        svg.insertAdjacentHTML('beforeend', circleHtml);
+    });
+}
+
+window.showTooltip = function(e, name, area, cost, hours) {
+    const tooltip = document.getElementById('chart-tooltip');
+    tooltip.innerHTML = `<strong>${name}</strong><br>${area}<br>₹${cost}/mo<br>${hours} hrs/wk`;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.pageX + 15) + 'px';
+    tooltip.style.top = (e.pageY - 15) + 'px';
+};
+
+window.hideTooltip = function() {
+    document.getElementById('chart-tooltip').style.display = 'none';
+};
     const list = document.getElementById('property-list');
     list.innerHTML = '';
+    
+    // Efficient Frontier Chart
+    renderChart(scoredProperties);
     
     // Dominance summary
     const dominatedCount = scoredProperties.filter(p => p.dominatedBy).length;
     if (dominatedCount > 0) {
         const sumDiv = document.createElement('div');
         sumDiv.className = 'summary-line';
-        sumDiv.textContent = `${dominatedCount} of ${scoredProperties.length} options are strictly worse than at least one alternative on both cost and time.`;
+        sumDiv.textContent = `${dominatedCount} of ${scoredProperties.length} options are strictly worse than at least one alternative on all five factors.`;
         list.appendChild(sumDiv);
     }
     
