@@ -102,6 +102,7 @@ window.closeCompare = function() {
 };
 
 let mapUpdateTimeout;
+let mapInitialized = false;
 
 function updateApp() {
     renderLeftRail(state, updateState);
@@ -111,6 +112,10 @@ function updateApp() {
     // Debounce map update
     clearTimeout(mapUpdateTimeout);
     mapUpdateTimeout = setTimeout(() => {
+        if (!mapInitialized && window.initMap) {
+            window.initMap();
+            mapInitialized = true;
+        }
         if (window.updateMap) {
             window.updateMap(scored, state, normalizeContext);
         }

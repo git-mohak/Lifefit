@@ -19,7 +19,26 @@ function getSolidScoreColor(score) {
     return '#ef4444';
 }
 
-function initMap(state, scoredProperties, normalizeContext) {\n    try {\n        if (!map) {\n            const mapEl = document.getElementById("map");\n            if (!mapEl) return;\n            map = L.map("map").setView([12.9716, 77.5946], 11);\n            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {\n                maxZoom: 19,\n                attribution: "� OpenStreetMap"\n            }).addTo(map);\n            gridLayer = L.layerGroup().addTo(map);\n            linesLayer = L.layerGroup().addTo(map);\n            markersLayer = L.layerGroup().addTo(map);\n            map.on("click", (e) => { handleMapClick(e.latlng.lat, e.latlng.lng); });\n            map.invalidateSize();\n            setTimeout(() => {\n                if (map) {\n                    map.invalidateSize();\n                    drawGrid(state, normalizeContext);\n                    drawMarkers(scoredProperties, state);\n                    if (state.household.length > 0) {\n                        const bounds = L.latLngBounds(state.household.map(h => [h.lat, h.lon]));\n                        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });\n                    }\n                }\n            }, 200);\n        } else {\n            drawGrid(state, normalizeContext);\n            drawMarkers(scoredProperties, state);\n            if (state.household.length > 0) {\n                const bounds = L.latLngBounds(state.household.map(h => [h.lat, h.lon]));\n                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });\n            }\n        }\n    } catch (e) {\n        console.error("Map init failed", e);\n    }\n}
+function initMap() {
+    try {
+        if (!map) {
+            const mapEl = document.getElementById("map");
+            if (!mapEl) return;
+            map = L.map("map").setView([12.9716, 77.5946], 11);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: " OpenStreetMap"
+            }).addTo(map);
+            gridLayer = L.layerGroup().addTo(map);
+            linesLayer = L.layerGroup().addTo(map);
+            markersLayer = L.layerGroup().addTo(map);
+            map.on("click", (e) => { handleMapClick(e.latlng.lat, e.latlng.lng); });
+            map.invalidateSize();
+        }
+    } catch (e) {
+        console.error("Map init failed", e);
+    }
+}
 
 // Draw the 60x60 grid overlay
 function drawGrid(state, normalizeContext) {
@@ -197,7 +216,16 @@ window.updateMap = function(scoredProperties, state, normalizeContext) {
     try {
         window._lastState = state;
         window._lastNormalizeContext = normalizeContext;
-        initMap(state, scoredProperties, normalizeContext);
+        
+        if (map) {
+            map.invalidateSize();
+            drawGrid(state, normalizeContext);
+            drawMarkers(scoredProperties, state);
+            if (state.household.length > 0) {
+                const bounds = L.latLngBounds(state.household.map(h => [h.lat, h.lon]));
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+            }
+        }
     } catch (e) {
         console.error("updateMap failed", e);
     }

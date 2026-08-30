@@ -8,14 +8,20 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <div class="layout">
+        <div class="left-rail" id="left-rail"></div>
         
-        <div id="chart-container" style="margin-bottom: 2rem; background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #f3f4f6;">
-            <svg id="frontier-chart" width="100%" height="300" style="overflow: visible;"></svg>
-            <div id="chart-tooltip" style="position: absolute; display: none; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.8rem; pointer-events: none; z-index: 10;"></div>
-            <p style="text-align: center; font-size: 0.85rem; color: #666; margin-top: 1rem;">Each dot is a home. The line is the efficient frontier: no option below or left of it exists. Anything above the line is paying more for the same time.</p>
-        </div>
-        <div class="property-list" id="property-list">
-            <!-- Rendered by JS -->
+        <div class="map-container" id="map"></div>
+        
+        <div class="right-panel">
+            <div id="chart-container" style="margin-bottom: 2rem; background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #f3f4f6;">
+                <svg id="frontier-chart" width="100%" height="300" style="overflow: visible;"></svg>
+                <div id="chart-tooltip" style="position: absolute; display: none; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.8rem; pointer-events: none; z-index: 10;"></div>
+                <p style="text-align: center; font-size: 0.85rem; color: #666; margin-top: 1rem;">Each dot is a home. The line is the efficient frontier: no option below or left of it exists. Anything above the line is paying more for the same time.</p>
+            </div>
+            <div class="property-list" id="property-list">
+                <!-- Rendered by JS -->
+            </div>
         </div>
     </div>
 

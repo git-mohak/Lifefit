@@ -3,7 +3,10 @@
 function renderLeftRail(state, onStateChange) {
     try {
         const rail = document.getElementById('left-rail');
-        if (!rail) return;
+        if (!rail) {
+            console.error('renderLeftRail error: left-rail element not found');
+            return;
+        }
         
         // Render household members
         let membersHtml = state.household.map((m, i) => `
