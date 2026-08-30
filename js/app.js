@@ -65,6 +65,10 @@ function normalizeState(raw) {
     
     if (res.household.length === 0) res.household = JSON.parse(JSON.stringify(defaultState.household));
     
+    res.scenarioActive = !!raw.scenarioActive;
+    res.scenarioBannerText = raw.scenarioBannerText || null;
+    res.originalPriya = raw.originalPriya || null;
+
     return res;
 }
 
@@ -99,6 +103,62 @@ window.toggleCompare = function(id) {
 
 window.closeCompare = function() {
     updateState({ compareQueue: [] });
+};
+
+window.toggleScenario = function() {
+    if (!state.scenarioActive) {
+        // Compute before state (Whitefield)
+        const currentHousehold = state.household;
+        const priyaIndex = currentHousehold.findIndex(m => m.name === "Priya");
+        
+        let newHousehold = JSON.parse(JSON.stringify(currentHousehold));
+        if (priyaIndex !== -1) {
+            // Current before scores
+            const { scored: beforeScored } = scoreProperties(PROPERTIES, state);
+            const beforeTop = beforeScored[0];
+            
+            // Mutate Priya in newHousehold
+            newHousehold[priyaIndex].destinationName = "Electronic City";
+            newHousehold[priyaIndex].lat = 12.8452;
+            newHousehold[priyaIndex].lon = 77.6602;
+            
+            // Compute after scores with temporary state
+            const tempAfterState = { ...state, household: newHousehold };
+            const { scored: afterScored } = scoreProperties(PROPERTIES, tempAfterState);
+            const afterTop = afterScored[0];
+            
+            const beforeHours = beforeTop.totalWeeklyHours.toFixed(1);
+            const afterHours = afterTop.totalWeeklyHours.toFixed(1);
+            
+            let bannerText = `Priya's office moved to Electronic City. Household travel went from ${beforeHours} to ${afterHours} hours a week.`;
+            if (beforeTop.name === afterTop.name) {
+                bannerText += ` Your top-ranked home remained ${beforeTop.name}.`;
+            } else {
+                bannerText += ` Your top-ranked home changed from ${beforeTop.name} to ${afterTop.name}.`;
+            }
+            
+            state.scenarioActive = true;
+            state.scenarioBannerText = bannerText;
+            state.originalPriya = currentHousehold[priyaIndex];
+            updateState({ household: newHousehold });
+        }
+    } else {
+        // Restore original Priya location
+        let newHousehold = JSON.parse(JSON.stringify(state.household));
+        const priyaIndex = newHousehold.findIndex(m => m.name === "Priya");
+        if (priyaIndex !== -1 && state.originalPriya) {
+            newHousehold[priyaIndex] = JSON.parse(JSON.stringify(state.originalPriya));
+        } else if (priyaIndex !== -1) {
+            newHousehold[priyaIndex].destinationName = "Whitefield Office";
+            newHousehold[priyaIndex].lat = 12.9698;
+            newHousehold[priyaIndex].lon = 77.7500;
+        }
+        
+        state.scenarioActive = false;
+        state.scenarioBannerText = null;
+        state.originalPriya = null;
+        updateState({ household: newHousehold });
+    }
 };
 
 let mapUpdateTimeout;

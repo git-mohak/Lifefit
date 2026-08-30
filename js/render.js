@@ -24,6 +24,13 @@ function renderLeftRail(state, onStateChange) {
             <h1>Life-Fit</h1>
             
             <div class="section">
+                <h3>Scenario</h3>
+                <button id="scenario-btn" class="scenario-btn ${state.scenarioActive ? 'active' : ''}" onclick="window.toggleScenario()">
+                    ${state.scenarioActive ? 'Undo scenario' : "What if Priya's office moves to Electronic City?"}
+                </button>
+            </div>
+            
+            <div class="section">
                 <h3>Household</h3>
                 ${membersHtml}
             </div>
@@ -102,6 +109,19 @@ function formatRent(amount) {
 
 function renderRightPanel(scoredProperties, state, toggleCompare, closeCompare) {
     try {
+        const bannerContainer = document.getElementById('scenario-banner-container');
+        if (bannerContainer) {
+            if (state.scenarioActive && state.scenarioBannerText) {
+                bannerContainer.innerHTML = `
+                    <div class="scenario-banner">
+                        ${state.scenarioBannerText}
+                    </div>
+                `;
+            } else {
+                bannerContainer.innerHTML = '';
+            }
+        }
+
         const list = document.getElementById('property-list');
         if (!list) return;
         list.innerHTML = '';
