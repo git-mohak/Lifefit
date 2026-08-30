@@ -164,8 +164,8 @@ function showDetails(scoreData) {
             <div style="font-size:18px; font-weight:bold; color:${getSolidScoreColor(scoreData.lifeFitScore)}; margin-bottom:10px;">
                 Score: ${scoreData.lifeFitScore}/100
             </div>
-            <div>Rent: ₹${scoreData.monthlyRent.toLocaleString('en-IN')}/mo</div>
-            <div>Total Cost: ₹${scoreData.totalMonthlyCost.toLocaleString('en-IN')}/mo</div>
+            <div>Rent: ${window.formatRent ? window.formatRent(scoreData.monthlyRent) : '₹' + Math.round(scoreData.monthlyRent).toLocaleString('en-IN')}/mo</div>
+            <div>Total Cost: ${window.formatRent ? window.formatRent(scoreData.totalMonthlyCost) : '₹' + Math.round(scoreData.totalMonthlyCost).toLocaleString('en-IN')}/mo</div>
             <div>Travel: ${scoreData.totalWeeklyHours.toFixed(1)} hrs/wk</div>
             <p style="font-size:0.9em; font-style:italic; margin: 10px 0;">${scoreData.factorSummary}</p>
         </div>

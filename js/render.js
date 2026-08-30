@@ -95,7 +95,8 @@ function formatRent(amount) {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR',
-        maximumFractionDigits: 0
+        maximumFractionDigits: 0,
+        minimumFractionDigits: 0
     }).format(amount);
 }
 
